@@ -39,9 +39,9 @@ class LunaHook:
         self.cli.stdin.write(cmd + '\n')
         self.cli.stdin.flush()
 
-    def readline(self, timeout=0.1):
+    def readline(self, timeout=0.1, block=True):
         try:
-            line = self.q.get(timeout=timeout)
+            line = self.q.get(block=block, timeout=timeout)
         except Empty:
             line = ''
         return line
@@ -54,8 +54,10 @@ class LunaHook:
         self.exec(f'detach -P{pid}')
         self.printline()
 
-    def onData(self):
-        line: str = self.q.get()
+    def onData(self, block=True, timeout=None):
+        line: str = self.readline(timeout, block)
+        if not line:
+            return '', ''
         line = line.rstrip()
         if line.startswith('['):
             idx = line.index(']')
