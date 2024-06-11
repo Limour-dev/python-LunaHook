@@ -3,32 +3,15 @@ from threading import Thread
 from queue import Queue, Empty
 
 
-class LunaTextOutputObject:
-    def __init__(self,
-                 handle: int,
-                 pid: int,
-                 addr: int,
-                 ctx: int,
-                 ctx2: int,
-                 name: str,
-                 code: str,
-                 text: str):
-        self.handle = handle
-        self.pid = pid
-        self.addr = addr
-        self.ctx = ctx
-        self.ctx2 = ctx2
-        self.name = name
-        self.code = code
-        self.text = text
-
-
 def enqueue_readline(out, q):
     while True:
         q.put(out.readline())
 
 
 class LunaHook:
+    allHooks = {}
+    lastHook = ''
+
     def __init__(self, CLI_path: str):
         self.cli = subprocess.Popen(
             CLI_path,
@@ -71,8 +54,21 @@ class LunaHook:
         self.exec(f'detach -P{pid}')
         self.printline()
 
+    def onData(self):
+        line: str = self.q.get()
+        line = line.rstrip()
+        if line.startswith('['):
+            idx = line.index(']')
+            hook, text = line[1:idx], line[idx + 1:]
+            self.allHooks[hook] = text
+            self.lastHook = hook
+        else:
+            self.allHooks[self.lastHook] += line
+        return self.lastHook, self.allHooks[self.lastHook]
+
 
 if __name__ == '__main__':
     tmp = LunaHook(r'D:\scn\LunaTranslator\Release_Chinese\LunaHostCLI64.exe')
-    tmp.attach(24636)
-    tmp.detach(24636)
+    tmp.attach(2744)
+    print(tmp.onData())
+    tmp.detach(2744)
